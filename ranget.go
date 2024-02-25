@@ -31,6 +31,7 @@ func main() {
 		progressChan <-chan int64
 		doneChan     = make(chan interface{})
 		bar          *pb.ProgressBar
+		barTmpl      = `{{ counters . }} {{ bar . }} {{ percent . }} {{ rtime . }} {{ speed . "%s/s"}}`
 
 		timingOut = log.New(io.Discard, "[TIMING]", 0)
 		debugOut  = log.New(io.Discard, "[DEBUG] ", 0)
@@ -87,9 +88,8 @@ func main() {
 		go func(done chan interface{}, progress <-chan int64) {
 
 			contentLength := <-progress // first item is the contentLength
-			bar = pb.New(int(contentLength))
+			bar = pb.ProgressBarTemplate(barTmpl).Start64(contentLength)
 			bar.Set(pb.Bytes, true)
-			bar.Start()
 			defer bar.Finish()
 
 			for {
