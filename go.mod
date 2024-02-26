@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/cheggaaa/pb/v3 v3.1.5
 	github.com/cognusion/go-humanity v1.3.0
-	github.com/cognusion/go-rangetripper v1.7.1
+	github.com/cognusion/go-rangetripper v1.7.2
 	github.com/spf13/pflag v1.0.5
 )
 
