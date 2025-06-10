@@ -2,7 +2,7 @@
 
 ranget (pronounced rang-et or range-et (I say the latter) or ran-jay if you're Frenchish, I suppose) is a CLI tool that fetches the ``--url``-specified file over HTTP/S using the HTTP RANGE spec to download ``--size`` chunks of the file asynchonously using the ``--max`` number of workers. When not ``--debug``ging, there is a nice progress bar that also calculates the throughput of the workers. If the requested server does not support ranged requests, the file is downloaded "normally".
 
-ranget is an example driver for [rangetripper](https://github.com/cognusion/go-rangetripper) which you can use directly.
+ranget is an example driver for [rangetripper](https://github.com/cognusion/go-rangetripper/v2) which you can use directly.
 
 ## Usage
 

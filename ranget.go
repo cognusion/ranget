@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/cognusion/go-humanity"
-	"github.com/cognusion/go-rangetripper"
-
 	"github.com/cheggaaa/pb/v3"
+	"github.com/cognusion/go-humanity"
+	"github.com/cognusion/go-rangetripper/v2"
 	"github.com/spf13/pflag"
 
 	"fmt"
@@ -28,8 +28,8 @@ func main() {
 		trash       bool
 		timeout     time.Duration
 
-		progressChan <-chan int64
-		doneChan     = make(chan interface{})
+		progressChan chan int64
+		doneChan     = make(chan any)
 		bar          *pb.ProgressBar
 		barTmpl      = `{{ counters . }} {{ bar . }} {{ percent . }} {{ rtime . }} {{ speed . "%s/s"}}`
 
@@ -69,7 +69,7 @@ func main() {
 	rtclient := rangetripper.NewRetryClientWithExponentialBackoff(10, 1*time.Second, timeout) // make a new Client
 	client.Timeout = timeout
 
-	rt, nerr := rangetripper.NewWithLoggers(10, outFile, timingOut, debugOut)
+	rt, nerr := rangetripper.NewWithLoggers(10, timingOut, debugOut)
 	if nerr != nil {
 		panic(nerr)
 	}
@@ -82,10 +82,12 @@ func main() {
 	}
 
 	if !debug {
-		progressChan = rt.WithProgress()
+		// Not debugging
+		progressChan = make(chan int64)
+
 		defer close(doneChan)
 
-		go func(done chan interface{}, progress <-chan int64) {
+		go func(done chan any, progress <-chan int64) {
 
 			contentLength := <-progress // first item is the contentLength
 			bar = pb.ProgressBarTemplate(barTmpl).Start64(contentLength)
@@ -94,10 +96,10 @@ func main() {
 
 			for {
 				select {
-				case <-done:
-					return
 				case b := <-progress:
 					bar.Add64(b)
+				case <-done:
+					return
 				}
 			}
 		}(doneChan, progressChan)
@@ -106,8 +108,18 @@ func main() {
 	client.Transport = rt // Use the RangeTripper as the Transport
 
 	debugOut.Printf("GETting %s!\n", urlString)
-	if _, err := client.Get(urlString); err != nil {
+	ctx := rangetripper.WithOutfile(context.Background(), outFile)
+	ctx = rangetripper.WithProgressChan(ctx, progressChan)
+	if req, err := http.NewRequestWithContext(ctx, "GET", urlString, nil); err == nil {
+		if _, derr := client.Do(req); derr != nil {
+			panic(derr)
+		}
+	} else {
 		panic(err)
 	}
 
+	if !debug {
+		// Let the pb drain out
+		<-time.After(200 * time.Millisecond)
+	}
 }
